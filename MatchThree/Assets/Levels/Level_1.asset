@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Level_1
   m_EditorClassIdentifier: 
   dimensions: {x: 6, y: 6}
-  maxMoves: 30
-  targetScore: 5000
+  maxMoves: 1
+  targetScore: 1000
+  scoreFor1Star: 1000
+  scoreFor2Stars: 2500
+  scoreFor3Stars: 5000
   levelName: Level 1

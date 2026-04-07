@@ -18,7 +18,10 @@ public class InputReader : MonoBehaviour, InputActions.ITouchscreenActions
     }
     private void OnDisable()
     {
-        _controls.Touchscreen.Disable();
+        if (_controls != null)
+        {
+            _controls.Touchscreen.Disable();
+        }
     }
     public void OnTouchPosition(InputAction.CallbackContext context)
     {

@@ -7,59 +7,56 @@ namespace Core
 {
     public class UIManager : MonoBehaviour
     {
-        [Header("Win/Lose Panels")]
+        [Header("Win Panel")]
         [SerializeField] private GameObject _winPanel;
-        [SerializeField] private GameObject _losePanel;
         [SerializeField] private TextMeshProUGUI _winScoreText;
-        [SerializeField] private TextMeshProUGUI _loseScoreText;
+        [SerializeField] private Button _nextLevelButton;
 
-        [Header("Menu Elements")]
-        [SerializeField] private GameObject _levelSelectionPanel;
-        [SerializeField] private Transform _buttonContainer;
-        [SerializeField] private GameObject _levelButtonPrefab;
+        [Header("Lose Panel")]
+        [SerializeField] private GameObject _losePanel;
+        [SerializeField] private TextMeshProUGUI _loseScoreText;
 
         public void ShowWinPanel(int score)
         {
-            if (_winPanel == null)
-            {
-                Debug.LogError("Win Panel is NOT assigned in UIManager! Please drag your WinPanel object into the 'Win Panel' slot.");
-                return;
-            }
+            if (_winPanel == null) return;
             
             _winPanel.SetActive(true);
-            
-            if (_winScoreText != null)
-                _winScoreText.text = "SCORE: " + score.ToString();
-            else
-                Debug.LogWarning("Win Score Text is NOT assigned in UIManager.");
+            if (_winScoreText != null) _winScoreText.text = "SCORE: " + score.ToString();
+
+            // Chỉ hiện nút "Next" nếu còn màn tiếp theo
+            if (_nextLevelButton != null)
+            {
+                bool hasNext = (LevelManager.SelectedLevelIndex + 1) < GameManager.Instance.TotalLevels;
+                _nextLevelButton.gameObject.SetActive(hasNext);
+            }
         }
 
         public void ShowLosePanel(int score)
         {
-            if (_losePanel == null)
-            {
-                Debug.LogError("Lose Panel is NOT assigned in UIManager! Please drag your LosePanel object into the 'Lose Panel' slot.");
-                return;
-            }
-
-            _losePanel.SetActive(true);
+            if (_losePanel == null) return;
             
-            if (_loseScoreText != null)
-                _loseScoreText.text = "SCORE: " + score.ToString();
-            else
-                Debug.LogWarning("Lose Score Text is NOT assigned in UIManager.");
+            _losePanel.SetActive(true);
+            if (_loseScoreText != null) _loseScoreText.text = "SCORE: " + score.ToString();
         }
 
+        // Gắn vào nút Restart
         public void RestartLevel()
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
+        // Gắn vào nút Menu/Home
         public void GoToMenu()
         {
-            // Implementation for returning to menu
+            SceneManager.LoadScene("MenuScene");
         }
 
-        // Methods to populate level buttons based on progress
+        // Gắn vào nút Next Level
+        public void LoadNextLevel()
+        {
+            LevelManager.SelectedLevelIndex++;
+            // Reload the same scene but with updated index
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
 }
