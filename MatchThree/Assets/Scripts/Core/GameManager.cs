@@ -21,6 +21,8 @@ namespace Core
         private MatchableGrid _grid;
         private bool _isGameOver = false;
 
+        public int TotalLevels => _allLevels != null ? _allLevels.Count : 0;
+
         protected override void Awake()
         {
             base.Awake();
@@ -59,8 +61,16 @@ namespace Core
         {
             if (_grid != null)
             {
+                // Force grid to center to avoid "floating candies" issue
+                _grid.transform.position = Vector3.zero;
+                Debug.Log($"[GameManager] Loading Level {LevelManager.SelectedLevelIndex + 1} with size {_dimensions}");
+                
                 _grid.InitializeGrid(_dimensions);
                 _grid.PopulateGrid();
+            }
+            else
+            {
+                Debug.LogError("[GameManager] MatchableGrid instance not found in Start!");
             }
         }
 
