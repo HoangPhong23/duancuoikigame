@@ -27,6 +27,20 @@ namespace Core
 
         public void OnLevelClick()
         {
+            // 🔥 THÊM CHECK LIVES (KHÔNG ĐỤNG CODE CŨ)
+            if (GameManager.Instance == null)
+            {
+                Debug.LogError("GameManager NULL");
+                return;
+            }
+
+            if (GameManager.Instance.lives <= 0)
+            {
+                Debug.Log("Hết mạng → không cho vào level");
+                return;
+            }
+
+            // ===== CODE CŨ GIỮ NGUYÊN =====
             Debug.Log("DA BAM NUT LEVEL: " + (_levelIndex + 1));
             LevelManager.SelectedLevelIndex = _levelIndex;
             UnityEngine.SceneManagement.SceneManager.LoadScene("SampleScene");
@@ -38,7 +52,16 @@ namespace Core
             bool isUnlocked = (_levelIndex + 1) <= unlockedLevel;
             
             if (_button == null) _button = GetComponent<Button>();
-            _button.interactable = isUnlocked;
+
+            // 🔥 THÊM CHECK LIVES (CHỈ ẢNH HƯỞNG UI)
+            bool hasLives = true;
+            if (GameManager.Instance != null)
+            {
+                hasLives = GameManager.Instance.lives > 0;
+            }
+
+            _button.interactable = isUnlocked && hasLives;
+
             if (_lockIcon != null) _lockIcon.SetActive(!isUnlocked);
         }
     }

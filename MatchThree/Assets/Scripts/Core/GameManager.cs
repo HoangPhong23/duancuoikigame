@@ -1,18 +1,26 @@
 using System;
 using TMPro;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using Tools;
+
 namespace Core
 {
     public class GameManager : SingletonMonoBehaviour<GameManager>
     {
+        [Header("LEVEL DATA")]
         [SerializeField] private List<LevelData> _allLevels;
-        [SerializeField] private TextMeshProUGUI _scoreText;
-        [SerializeField] private TextMeshProUGUI _moveText;
-        [SerializeField] private TextMeshProUGUI _targetScoreText;
-        [SerializeField] private UIManager _uiManager;
+        public int TotalLevels => _allLevels != null ? _allLevels.Count : 0;
+
+        private TextMeshProUGUI _scoreText;
+        private TextMeshProUGUI _moveText;
+        private TextMeshProUGUI _targetScoreText;
+        private UIManager _uiManager;
+
+        [Header("SHOP DATA")]
+        public int money = 1000;
+        public int lives = 0;
 
         private int _maxAllowedMove;
         private int _score;
@@ -21,13 +29,75 @@ namespace Core
         private MatchableGrid _grid;
         private bool _isGameOver = false;
 
-        public int TotalLevels => _allLevels != null ? _allLevels.Count : 0;
-
         protected override void Awake()
         {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             base.Awake();
-            
+            DontDestroyOnLoad(gameObject);
+
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+{
+    Debug.Log("Scene Loaded: " + scene.name);
+
+    // 🔥 AUTO FIND UI
+    AutoFindUI();
+
+    if (scene.name == "SampleScene")
+    {
+        // 🔥 TRỪ 1 LIFE KHI VÀO GAME
+        if (lives > 0)
+        {
+            lives--;
+            Debug.Log("Lives còn lại: " + lives);
+        }
+
+        SetupGame();
+    }
+}
+
+        // ================== AUTO FIND UI ==================
+        private void AutoFindUI()
+        {
+            // tìm theo tên (giống ảnh bạn gửi)
+            _scoreText = GameObject.Find("ScoreText")?.GetComponent<TextMeshProUGUI>();
+            _moveText = GameObject.Find("MoveCounter")?.GetComponent<TextMeshProUGUI>();
+            _targetScoreText = GameObject.Find("TargetScoreText")?.GetComponent<TextMeshProUGUI>();
+
+            _uiManager = FindObjectOfType<UIManager>();
+
+            Debug.Log("Auto UI Connected: "
+                + (_scoreText != null ? "Score ✔ " : "Score ❌ ")
+                + (_moveText != null ? "Move ✔ " : "Move ❌ "));
+        }
+
+        private void UpdateUI()
+        {
+            if (_scoreText != null)
+                _scoreText.text = _score.ToString("D5");
+
+            if (_moveText != null)
+                _moveText.text = _maxAllowedMove.ToString();
+
+            if (_targetScoreText != null)
+                _targetScoreText.text = "Target: " + _targetScore;
+        }
+
+        private void SetupGame()
+        {
+            Debug.Log("Setup Game Scene");
+
+            _isGameOver = false;
+
             LevelData currentLevel = null;
+
             if (_allLevels != null && _allLevels.Count > 0)
             {
                 int levelIdx = Mathf.Clamp(LevelManager.SelectedLevelIndex, 0, _allLevels.Count - 1);
@@ -47,77 +117,51 @@ namespace Core
                 _targetScore = 5000;
             }
 
-            _grid = (MatchableGrid) MatchableGrid.Instance;
-            
+            _grid = MatchableGrid.Instance as MatchableGrid;
+
+            if (_grid == null)
+            {
+                Debug.LogError("MatchableGrid not found!");
+                return;
+            }
+
+            _grid.transform.position = Vector3.zero;
+            _grid.InitializeGrid(_dimensions);
+            _grid.PopulateGrid();
+
             _score = 0;
-            _scoreText.text = _score.ToString("D5");
-            _moveText.text = _maxAllowedMove.ToString();
-            
-            if (_targetScoreText != null)
-                _targetScoreText.text = "Target: " + _targetScore.ToString();
+
+            // 🔥 update UI sau khi setup
+            UpdateUI();
         }
 
-        private void Start()
+        // ================== SHOP ==================
+        public bool BuyLife(int price, int amount)
         {
-            if (_grid != null)
+            if (money >= price)
             {
-                // Force grid to center to avoid "floating candies" issue
-                _grid.transform.position = Vector3.zero;
-                Debug.Log($"[GameManager] Loading Level {LevelManager.SelectedLevelIndex + 1} with size {_dimensions}");
-                
-                _grid.InitializeGrid(_dimensions);
-                _grid.PopulateGrid();
+                money -= price;
+                lives += amount;
+                return true;
             }
-            else
-            {
-                Debug.LogError("[GameManager] MatchableGrid instance not found in Start!");
-            }
+            return false;
         }
 
+        // ================== GAME ==================
         public void IncreaseScore(int value)
         {
             if (_isGameOver) return;
 
             _score += value;
-            if (_scoreText != null)
-                _scoreText.text = _score.ToString("D5");
-            else
-                Debug.LogWarning("Score Text is NOT assigned in GameManager!");
-            
-            if (_score >= _targetScore)
-            {
-                WinGame();
-            }
-        }
+            UpdateUI();
 
-        private void WinGame()
-        {
-            if (_isGameOver) return;
-            _isGameOver = true;
-            Debug.Log("LEVEL COMPLETE!");
-            
-            // Save progress (Only if LevelManager exists)
-            LevelManager levelManager = FindObjectOfType<LevelManager>();
-            if (levelManager != null)
-            {
-                levelManager.UnlockNextLevel(LevelManager.SelectedLevelIndex);
-            }
-            else
-            {
-                Debug.LogWarning("LevelManager NOT found in scene. Progress will not be saved.");
-            }
-            
-            if (_uiManager != null)
-                _uiManager.ShowWinPanel(_score);
-            else
-                Debug.LogError("UIManager is NOT assigned in GameManager! Cannot show Win Panel.");
+            if (_score >= _targetScore)
+                WinGame();
         }
 
         public bool CanMoveMatchables()
         {
-            if (_maxAllowedMove <= 0 || _isGameOver)
-                return false;
-            return true;
+            return _maxAllowedMove > 0 && !_isGameOver;
         }
 
         public void DecreaseMove()
@@ -125,11 +169,8 @@ namespace Core
             if (_isGameOver) return;
 
             _maxAllowedMove--;
-            if (_moveText != null)
-                _moveText.text = _maxAllowedMove.ToString();
-            else
-                Debug.LogWarning("Move Text is NOT assigned in GameManager!");
-            
+            UpdateUI();
+
             if (_maxAllowedMove <= 0)
             {
                 if (_score >= _targetScore)
@@ -139,18 +180,31 @@ namespace Core
             }
         }
 
+        private void WinGame()
+        {
+            if (_isGameOver) return;
+            _isGameOver = true;
+
+            Debug.Log("WIN");
+
+            if (_uiManager != null)
+                _uiManager.ShowWinPanel(_score);
+        }
+
         private void LoseGame()
         {
             if (_isGameOver) return;
             _isGameOver = true;
-            Debug.Log("GAME OVER!");
-            
+
+            Debug.Log("LOSE");
+
             if (_uiManager != null)
                 _uiManager.ShowLosePanel(_score);
-            else
-                Debug.LogError("UIManager is NOT assigned in GameManager! Cannot show Lose Panel.");
+        }
+
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
         }
     }
 }
-
-
