@@ -6,49 +6,74 @@ public class SettingsUI : MonoBehaviour
     [Header("Panel UI")]
     public GameObject settingsPanel;
 
-    [Header("Controls")]
-    public Slider musicSlider;  
-    public Toggle musicToggle;  
+    [Header("SFX Controls")]
+    public Slider sfxSlider;
+    public Toggle sfxToggle;
+
+    [Header("Music Controls")]
+    public Slider musicSlider;
+    public Toggle musicToggle;
 
     void Start()
     {
-        // 1. Load dữ liệu từ máy (Mặc định volume 0.8, status là ON)
-        float savedVolume = PlayerPrefs.GetFloat("MusicVolume", 0.8f);
-        bool isOn = PlayerPrefs.GetInt("MusicStatus", 1) == 1;
+        Debug.Log("[SettingsUI] Start");
 
-        // 2. Cập nhật giao diện (Kiểm tra tránh lỗi Null)
-        if (musicSlider != null) musicSlider.value = savedVolume;
-        if (musicToggle != null) musicToggle.isOn = isOn;
+        if (SoundManager.Instance == null)
+        {
+            Debug.LogError("[SettingsUI] SoundManager.Instance is NULL");
+            return;
+        }
 
-        // 3. Áp dụng âm thanh ngay lập tức khi vào cảnh
-        ApplyMusicSettings(savedVolume, isOn);
-        
-        Debug.Log($"[SettingsUI] Đã load: Volume {savedVolume}, Status {isOn}");
+        if (sfxSlider != null) sfxSlider.value = SoundManager.Instance.GetSFXVolume();
+        if (sfxToggle != null) sfxToggle.isOn = SoundManager.Instance.GetSFXStatus();
+
+        if (musicSlider != null) musicSlider.value = SoundManager.Instance.GetMusicVolume();
+        if (musicToggle != null) musicToggle.isOn = SoundManager.Instance.GetMusicStatus();
+
+        SoundManager.Instance.ApplySFXSettings(sfxSlider.value, sfxToggle.isOn);
+        SoundManager.Instance.ApplyMusicSettings(musicSlider.value, musicToggle.isOn);
+
+        Debug.Log("[SettingsUI] Loaded settings");
     }
 
-    public void OnSliderChanged(float value)
+    public void OnSFXSliderChanged(float value)
     {
-        if (musicToggle != null)
-            ApplyMusicSettings(value, musicToggle.isOn);
+        Debug.Log("[SettingsUI] OnSFXSliderChanged: " + value);
+
+        if (SoundManager.Instance != null && sfxToggle != null)
+        {
+            SoundManager.Instance.ApplySFXSettings(value, sfxToggle.isOn);
+        }
     }
 
-    public void OnToggleChanged(bool isOn)
+    public void OnSFXToggleChanged(bool isOn)
     {
-        if (musicSlider != null)
-            ApplyMusicSettings(musicSlider.value, isOn);
+        Debug.Log("[SettingsUI] OnSFXToggleChanged: " + isOn);
+
+        if (SoundManager.Instance != null && sfxSlider != null)
+        {
+            SoundManager.Instance.ApplySFXSettings(sfxSlider.value, isOn);
+        }
     }
 
-    private void ApplyMusicSettings(float volume, bool isOn)
+    public void OnMusicSliderChanged(float value)
     {
-        float finalVolume = isOn ? volume : 0;
-        
-        // Điều khiển âm lượng toàn hệ thống
-        AudioListener.volume = finalVolume;
+        Debug.Log("[SettingsUI] OnMusicSliderChanged: " + value);
 
-        // Lưu dữ liệu vào máy
-        PlayerPrefs.SetFloat("MusicVolume", volume);
-        PlayerPrefs.SetInt("MusicStatus", isOn ? 1 : 0);
-        PlayerPrefs.Save();
+        if (SoundManager.Instance != null && musicToggle != null)
+        {
+            SoundManager.Instance.ApplyMusicSettings(value, musicToggle.isOn);
+        }
+    }
+
+    public void OnMusicToggleChanged(bool isOn)
+    {
+        Debug.Log("[SettingsUI] OnMusicToggleChanged: " + isOn);
+
+        if (SoundManager.Instance != null && musicSlider != null)
+        {
+            SoundManager.Instance.ApplyMusicSettings(musicSlider.value, isOn);
+        }
     }
 
     public void OpenSettings()
