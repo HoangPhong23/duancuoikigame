@@ -20,8 +20,11 @@ namespace Core
         private Vector2Int _dimensions;
         private MatchableGrid _grid;
         private bool _isGameOver = false;
+        private bool _hasUsedContinue = false; // Giới hạn xem quảng cáo 1 lần/màn
 
         public int TotalLevels => _allLevels != null ? _allLevels.Count : 0;
+        public int CurrentScore => _score;
+        public bool HasUsedContinue => _hasUsedContinue;
 
         protected override void Awake()
         {
@@ -146,9 +149,27 @@ namespace Core
             Debug.Log("GAME OVER!");
             
             if (_uiManager != null)
-                _uiManager.ShowLosePanel(_score);
+                _uiManager.ShowLosePanel(_score, !_hasUsedContinue);
             else
                 Debug.LogError("UIManager is NOT assigned in GameManager! Cannot show Lose Panel.");
+        }
+
+        /// <summary>
+        /// Tiếp tục chơi sau khi xem quảng cáo — cộng thêm nước đi, GIỮ nguyên điểm.
+        /// </summary>
+        public void ContinueWithExtraMoves(int extraMoves = 5)
+        {
+            _hasUsedContinue = true;
+            _isGameOver = false;
+            _maxAllowedMove += extraMoves;
+
+            if (_moveText != null)
+                _moveText.text = _maxAllowedMove.ToString();
+
+            Debug.Log($"[GameManager] +{extraMoves} lượt được thưởng. Còn lại: {_maxAllowedMove}");
+
+            if (_uiManager != null)
+                _uiManager.HideLosePanel();
         }
     }
 }
